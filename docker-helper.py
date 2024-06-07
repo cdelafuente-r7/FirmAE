@@ -41,7 +41,7 @@ class docker_helper:
     def stop_core(self, container_name):
         return sp.check_output("docker stop {}".format(container_name), shell=True)
 
-    def run_core(self, idx, mode, brand, firmware_path):
+    def run_core(self, idx, mode, brand, firmware_path, fw_ports):
         firmware_root = os.path.dirname(firmware_path)
         firmware = os.path.basename(firmware_path)
         docker_name = 'docker{}_{}'.format(idx, firmware)
@@ -51,20 +51,31 @@ class docker_helper:
                 -v {1}:/work/firmwares \\
                 --privileged=true \\
                 --name {2} \\
+                --ulimit nofile=1024:1024 \\
+                {3} \\
                 fcore""".format(self.firmae_root,
                                 firmware_root,
-                                docker_name)
+                                docker_name,
+                                fw_ports)
 
         sp.check_output(cmd, shell=True)
         logging.info("[*] {} emulation start!".format(docker_name))
         time.sleep(5)
 
         docker_mode = "-it" if mode == "-d" else "-id"
+        port_opts = ''
+        for ports in fw_ports.split(' -p '):
+            if ports == "":
+                continue
+            # format can be "port:port" or "ip:port:port"
+            port = ports.split(':')[-1]
+            port_opts += ' -p {}'.format(port)
         cmd = "docker exec {0} \"{1}\" ".format(docker_mode, docker_name)
         cmd += "bash -c \"cd /work/FirmAE && "
-        cmd += "./run.sh {0} {1} /work/firmwares/{2} ".format(mode,
-                                                              brand,
-                                                              firmware)
+        cmd += "./run.sh {0} {1} {2} /work/firmwares/{3} ".format(mode,
+                                                                  port_opts,
+                                                                  brand,
+                                                                  firmware)
         if mode == "-d":
             cmd += "\""
         else:
@@ -208,9 +219,9 @@ def print_usage(argv0):
     return
 
 def runner(args):
-    (idx, dh, mode, brand, firmware) = args
+    (idx, dh, mode, brand, firmware, fw_ports) = args
     if os.path.isfile(firmware):
-        docker_name = dh.run_core(idx, mode, brand, firmware)
+        docker_name = dh.run_core(idx, mode, brand, firmware, fw_ports)
         dh.stop_core(docker_name)
     else:
         logging.error("[-] Can't find firmware file")
@@ -277,9 +288,19 @@ def main():
             exit(1)
 
         mode = '-' + sys.argv[1][-1]
-        firmware_path = os.path.abspath(sys.argv[2])
+        firmware_path = os.path.abspath(sys.argv[-1])
+
+        fw_ports = ''
+        fw_ports_args = sys.argv[2:len(sys.argv)-1]
+        for flag, ports in zip(fw_ports_args[0::2], fw_ports_args[1::2]):
+            if flag == '-p':
+                fw_ports += " {0} {1}".format(flag, ports)
+            else:
+                print_usage(sys.argv[0])
+                exit(1)
+
         if os.path.isfile(firmware_path):
-            argv = (0, dh, mode, "auto", firmware_path)
+            argv = (0, dh, mode, "auto", firmware_path, fw_ports)
             runner(argv)
 
     elif sys.argv[1] == '-c':

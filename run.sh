@@ -2,16 +2,18 @@
 
 function print_usage()
 {
-    echo "Usage: ${0} [mode]... [brand] [firmware|firmware_directory]"
+    echo "Usage: ${0} [mode] [options] [brand] [firmware|firmware_directory]"
     echo "mode: use one option at once"
     echo "      -r, --run     : run mode         - run emulation (no quit)"
     echo "      -c, --check   : check mode       - check network reachable and web access (quit)"
     echo "      -a, --analyze : analyze mode     - analyze vulnerability (quit)"
     echo "      -d, --debug   : debug mode       - debugging emulation (no quit)"
     echo "      -b, --boot    : boot debug mode  - kernel boot debugging using QEMU (no quit)"
+    echo "options [optional]"
+    echo "      -p, --publish [port]  : publish a container's port to the host (can be used multiple times to publish more than one port)"
 }
 
-if [ $# -ne 3 ]; then
+if [ $# -lt 3 ]; then
     print_usage ${0}
     exit 1
 fi
@@ -68,9 +70,41 @@ if (! id | egrep -sqi "root"); then
   exit 1
 fi
 
-BRAND=${2}
+BRAND=${@: -2:1}
+FIRMWARE=${@: -1}
+PORTS=()
+if [ $# -gt 3 ]; then
+    for (( i=2; i<=$#-2; i=i+2)); do
+        if [ "${!i}" = "-p" ]; then
+            var=$((i+1))
+            PORTS+=("${!var}")
+        else
+            echo -e "[\033[31m-\033[0m] wrong optional arguments: ${!i}"
+            print_usage ${0}
+            exit 1
+        fi
+    done
+fi
 WORK_DIR=""
 IID=-1
+
+function enable_ip_forward()
+{
+    IP=${1}
+    PORTS=${2}
+
+    echo "[*] Enable IP forward for ports ${PORTS[@]} to ${IP}"
+
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    iptables -F
+    iptables -t nat -F
+    iptables -X
+
+    for PORT in "${PORTS[@]}"; do
+        iptables -t nat -A PREROUTING -p tcp --dport ${PORT} -j DNAT --to-destination ${IP}:${PORT}
+        iptables -t nat -A POSTROUTING -p tcp -d ${IP} --dport ${PORT} -j SNAT --to-source 192.168.1.2
+    done
+}
 
 function run_emulation()
 {
@@ -236,6 +270,8 @@ function run_emulation()
         echo false > ${WORK_DIR}/result
     fi
 
+    enable_ip_forward ${IP} ${PORTS}
+
     if [ ${OPTION} = "analyze" ]; then
         # ================================
         # analyze firmware (check vulnerability)
@@ -302,7 +338,6 @@ function run_emulation()
 
 }
 
-FIRMWARE=${3}
 
 if [ ${OPTION} = "debug" ] && [ -d ${FIRMWARE} ]; then
     echo -e "[\033[31m-\033[0m] select firmware file on debug mode!"

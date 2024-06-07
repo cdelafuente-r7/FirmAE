@@ -11,7 +11,7 @@ RUN python3 -m pip install --upgrade pip
 RUN apt-get install -y libpq-dev
 RUN python3 -m pip install psycopg2 psycopg2-binary
 
-RUN apt-get install -y busybox-static bash-static fakeroot git kpartx netcat-openbsd nmap python3-psycopg2 snmp uml-utilities util-linux vlan
+RUN apt-get install -y busybox-static bash-static fakeroot git kpartx netcat-openbsd nmap python3-psycopg2 snmp uml-utilities util-linux vlan lsb-release
 
 # for binwalk
 # bypass tzdata interaction

@@ -450,7 +450,7 @@ class ExtractionItem(object):
                     dir_name = module.extractor.directory
 
                     if prev_entry and prev_entry.description == desc and \
-                            'Zlib comparessed data' in desc:
+                            'Zlib compressed data' in desc:
                         continue
                     prev_entry = entry
 
