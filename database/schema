@@ -3,6 +3,11 @@
 --
 
 --
+-- Connect to the firmware database (only useful with Docker installation)
+--
+\connect firmware
+
+--
 -- Name: brand; Type: TABLE; Schema: public; Owner: firmadyne; Tablespace:
 --
 

@@ -38,8 +38,26 @@ class docker_helper:
 
         return ret[::-1]
 
+    def stop_db(self):
+        return sp.check_output("docker stop fdb", shell=True)
+
     def stop_core(self, container_name):
         return sp.check_output("docker stop {}".format(container_name), shell=True)
+
+    def run_db(self):
+        cmd = """docker run -d --rm \\
+                --name fdb \\
+                -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \\
+                --net firmae_network \\
+                -v ${PWD}/docker-init-db.sql:/docker-entrypoint-initdb.d/01-docker-init-db.sql \\
+                -v ${PWD}/database/schema:/docker-entrypoint-initdb.d/02-schema.sql \\
+                -v ${PWD}/docker-db:/var/lib/postgresql/data \\
+                postgres:14.1-alpine"""
+
+        sp.check_output(cmd, shell=True)
+        time.sleep(5)
+        logging.info("[*] Docker database instance started...")
+
 
     def run_core(self, idx, mode, brand, firmware_path, fw_ports):
         firmware_root = os.path.dirname(firmware_path)
@@ -52,6 +70,7 @@ class docker_helper:
                 --privileged=true \\
                 --name {2} \\
                 --ulimit nofile=1024:1024 \\
+                --net firmae_network \\
                 {3} \\
                 fcore""".format(self.firmae_root,
                                 firmware_root,
@@ -221,8 +240,10 @@ def print_usage(argv0):
 def runner(args):
     (idx, dh, mode, brand, firmware, fw_ports) = args
     if os.path.isfile(firmware):
+        dh.run_db()
         docker_name = dh.run_core(idx, mode, brand, firmware, fw_ports)
         dh.stop_core(docker_name)
+        dh.stop_db()
     else:
         logging.error("[-] Can't find firmware file")
 
