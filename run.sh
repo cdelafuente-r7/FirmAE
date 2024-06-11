@@ -104,6 +104,9 @@ function enable_ip_forward()
         iptables -t nat -A PREROUTING -p tcp --dport ${PORT} -j DNAT --to-destination ${IP}:${PORT}
         iptables -t nat -A POSTROUTING -p tcp -d ${IP} --dport ${PORT} -j SNAT --to-source 192.168.1.2
     done
+
+    NETIF=$(ip route | grep default | awk '{print $NF}')
+    iptables -t nat -A POSTROUTING -o ${NETIF} -j MASQUERADE
 }
 
 function run_emulation()

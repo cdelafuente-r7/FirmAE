@@ -65,6 +65,7 @@ mount ${DEVICE} ${WORK_DIR}/image > /dev/null
 echo "%(NETWORK_TYPE)s" > ${WORK_DIR}/image/firmadyne/network_type
 echo "%(NET_BRIDGE)s" > ${WORK_DIR}/image/firmadyne/net_bridge
 echo "%(NET_INTERFACE)s" > ${WORK_DIR}/image/firmadyne/net_interface
+echo "%(NET_GATEWAY)s" > ${WORK_DIR}/image/firmadyne/net_gateway
 
 echo "#!/firmadyne/sh" > ${WORK_DIR}/image/firmadyne/debug.sh
 if (echo ${RUN_MODE} | grep -q "debug"); then
@@ -404,12 +405,14 @@ def qemuCmd(iid, network, ports, network_type, arch, endianness, qemuInitValue, 
     for (ip, dev, vlan, mac, brif) in network:
         network_bridge = brif
         network_iface = dev
+        gateway_ip = convertToHostIp(ip)
         break
 
     return QEMUCMDTEMPLATE % {'IID': iid,
                               'NETWORK_TYPE' : network_type,
                               'NET_BRIDGE' : network_bridge,
                               'NET_INTERFACE' : network_iface,
+                              'NET_GATEWAY' : gateway_ip,
                               'START_NET' : startNetwork(network),
                               'STOP_NET' : stopNetwork(network),
                               'ARCHEND' : arch + endianness,

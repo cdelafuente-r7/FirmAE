@@ -4,6 +4,7 @@ BUSYBOX=/firmadyne/busybox
 ACTION=`${BUSYBOX} cat /firmadyne/network_type`
 
 if (${FIRMAE_NET}); then
+  NET_BRIDGE=`${BUSYBOX} cat /firmadyne/net_bridge`
   ${BUSYBOX} sleep 10
 
   if [ ${ACTION} == "default" ]; then
@@ -12,7 +13,6 @@ if (${FIRMAE_NET}); then
     ${BUSYBOX} brctl addif br0 eth0
     ${BUSYBOX} ifconfig eth0 0.0.0.0 up
   elif [ ${ACTION} != "None" ]; then
-    NET_BRIDGE=`${BUSYBOX} cat /firmadyne/net_bridge`
     NET_INTERFACE=`${BUSYBOX} cat /firmadyne/net_interface`
 
     # netgear WNR2000 bridge command
@@ -58,6 +58,11 @@ if (${FIRMAE_NET}); then
   fi
 
   ${BUSYBOX} sleep 60
+
+  if ${BUSYBOX} which route; then
+      NET_GATEWAY=`${BUSYBOX} cat /firmadyne/net_gateway`
+      route add default gw ${NET_GATEWAY} ${NET_BRIDGE}
+  fi
 
   # netgear TL-WR841HP_V2_151124
   while (true); do
