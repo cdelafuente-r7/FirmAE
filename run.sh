@@ -273,7 +273,9 @@ function run_emulation()
         echo false > ${WORK_DIR}/result
     fi
 
-    enable_ip_forward ${IP} ${PORTS}
+    if [[ -n ${IP} ]] && [[ -n ${PORTS} ]]; then
+        enable_ip_forward ${IP} ${PORTS}
+    fi
 
     if [ ${OPTION} = "analyze" ]; then
         # ================================

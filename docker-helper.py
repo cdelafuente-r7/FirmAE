@@ -65,10 +65,10 @@ class docker_helper:
         docker_name = 'docker{}_{}'.format(idx, firmware)
         cmd = """docker run -dit --rm \\
                 -v /dev:/dev \\
-                -v {0}:/work/FirmAE \\
-                -v {1}:/work/firmwares \\
+                -v "{0}":/work/FirmAE \\
+                -v "{1}":/work/firmwares \\
                 --privileged=true \\
-                --name {2} \\
+                --name "{2}" \\
                 --ulimit nofile=1024:1024 \\
                 --net firmae_network \\
                 {3} \\
